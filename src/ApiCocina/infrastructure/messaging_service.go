@@ -85,6 +85,7 @@ func (ms *MessagingService) ConsumeOrderCreated() (<-chan []byte, error) {
 	byteChan := make(chan []byte)
 	go func() {
 		for msg := range msgs {
+			log.Printf("Received a new order: %s", msg.Body) // Log cuando se recibe un mensaje
 			byteChan <- msg.Body
 		}
 	}()
@@ -95,10 +96,11 @@ func (ms *MessagingService) ConsumeOrderCreated() (<-chan []byte, error) {
 func (ms *MessagingService) PublishOrderReady(pedido *entities.Orden) error {
 	orderJSON, err := json.Marshal(pedido)
 	if err != nil {
+		log.Printf("Failed to marshal order: %s", err)
 		return err
 	}
 
-	return ms.ch.Publish(
+	err = ms.ch.Publish(
 		"orders_ready", // exchange
 		"order_ready",  // routing key
 		false,          // mandatory
@@ -108,6 +110,13 @@ func (ms *MessagingService) PublishOrderReady(pedido *entities.Orden) error {
 			Body:        orderJSON,
 		},
 	)
+	if err != nil {
+		log.Printf("Failed to publish order ready event: %s", err)
+		return err
+	}
+
+	log.Printf("Order ready event published: %+v", pedido)
+	return nil
 }
 
 func (ms *MessagingService) Close() {

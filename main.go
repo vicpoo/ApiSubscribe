@@ -2,7 +2,7 @@
 package main
 
 import (
-	"encoding/json" // Importar el paquete json
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -30,7 +30,7 @@ func main() {
 
 	r.Use(cors.New(corsConfig))
 
-	// Inicializar dependencias
+	// Inicializar el servicio de mensajería
 	ms, err := infrastructure.NewMessagingService()
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
@@ -51,10 +51,19 @@ func main() {
 				continue
 			}
 
+			// Validar datos antes de guardar
+			if pedido.MesaID == 0 || pedido.Detalles == "" {
+				log.Printf("Invalid order data: %+v", pedido)
+				continue
+			}
+
 			// Guardar el pedido en la base de datos
 			repo := infrastructure.NewMySQLOrdenRepository()
-			if err := repo.Save(pedido); err != nil { // Cambio: pasar pedido, no &pedido
+			if err := repo.Save(pedido); err != nil {
 				log.Printf("Failed to save order: %s", err)
+				// Podrías agregar un mecanismo de reintento aquí
+			} else {
+				log.Printf("Order saved successfully: %+v", pedido)
 			}
 		}
 	}()
@@ -68,7 +77,7 @@ func main() {
 	// Mensaje de inicio
 	fmt.Println("¡API en Funcionamiento :D!")
 
-	// Iniciar el servidor en el puerto 8000
+	// Iniciar el servidor en el puerto 8080
 	err = r.Run(":8080")
 	if err != nil {
 		fmt.Println("Error al iniciar el servidor:", err)
