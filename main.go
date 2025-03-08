@@ -1,10 +1,10 @@
-// main.go
 package main
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -52,9 +52,15 @@ func main() {
 			}
 
 			// Validar datos antes de guardar
-			if pedido.MesaID == 0 || pedido.Detalles == "" {
+			if pedido.MesaID == 0 || len(pedido.Detalles) == 0 {
 				log.Printf("Invalid order data: %+v", pedido)
 				continue
+			}
+
+			// Validar la fecha de creación
+			if pedido.FechaCreacion.IsZero() || pedido.FechaCreacion.Year() < 1000 {
+				// Si la fecha no es válida, usar la fecha actual
+				pedido.FechaCreacion = time.Now()
 			}
 
 			// Guardar el pedido en la base de datos
